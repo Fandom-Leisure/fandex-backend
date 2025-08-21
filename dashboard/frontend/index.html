@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fan Intelligence Dashboard MVP+</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div class="max-w-7xl mx-auto p-5">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-primary mb-6">Fan Intelligence Dashboard</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                <div class="bg-gray-800 p-6 rounded-xl hover:-translate-y-1 transition-transform">
+                    <div class="text-gray-400 text-sm mb-2">Total Fans</div>
+                    <div class="text-3xl font-bold text-primary" id="totalFans">-</div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl hover:-translate-y-1 transition-transform">
+                    <div class="text-gray-400 text-sm mb-2">Active Today</div>
+                    <div class="text-3xl font-bold text-primary" id="activeFans">-</div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl hover:-translate-y-1 transition-transform">
+                    <div class="text-gray-400 text-sm mb-2">Total Revenue</div>
+                    <div class="text-3xl font-bold text-primary" id="totalRevenue">$-</div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl hover:-translate-y-1 transition-transform">
+                    <div class="text-gray-400 text-sm mb-2">Avg Fan Value</div>
+                    <div class="text-3xl font-bold text-primary" id="avgFanValue">$-</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="mb-8 space-y-4">
+            <!-- Filter Controls -->
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <div class="flex items-center gap-4 mb-4">
+                    <label class="text-sm text-gray-400">View Mode:</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="viewMode" value="fans" checked onchange="handleViewModeChange()" 
+                                   class="text-primary focus:ring-primary">
+                            <span>Fans Only</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="viewMode" value="fan-model" onchange="handleViewModeChange()" 
+                                   class="text-primary focus:ring-primary">
+                            <span>Fan-Model Pairs</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <input type="text" id="fanSearch" placeholder="Search fans by ID..." 
+                           class="flex-1 px-5 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:border-primary">
+                    
+                    <select id="modelFilter" class="px-5 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:border-primary hidden">
+                        <option value="">All Models</option>
+                    </select>
+                    
+                    <button onclick="searchFans()" 
+                            class="px-6 py-3 bg-primary hover:bg-secondary text-white rounded-lg transition-colors">
+                        Search
+                    </button>
+                    <button onclick="loadActiveFans()" 
+                            class="px-6 py-3 bg-primary hover:bg-secondary text-white rounded-lg transition-colors">
+                        Show Active
+                    </button>
+                </div>
+                
+                <!-- Segmentation Filters -->
+                <div class="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-1">Spending</label>
+                        <select id="spendingFilter" multiple class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm text-gray-100" onchange="loadFans()">
+                            <option value="ED">Every Day (ED)</option>
+                            <option value="AD">Almost Daily (AD)</option>
+                            <option value="WS">Weekly (WS)</option>
+                            <option value="IO">In & Out (IO)</option>
+                            <option value="NW">Not Worth (NW)</option>
+                            <option value="TW">Time Waster (TW)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-1">Engagement</label>
+                        <select id="engagementFilter" multiple class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm text-gray-100" onchange="loadFans()">
+                            <option value="CB">Chatty Buyer (CB)</option>
+                            <option value="Q">Quick (Q)</option>
+                            <option value="ER">Event-Driven (ER)</option>
+                            <option value="L">Lurker (L)</option>
+                            <option value="CN">Chatty Non-Buyer (CN)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-1">Emotional</label>
+                        <select id="emotionalFilter" multiple class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm text-gray-100" onchange="loadFans()">
+                            <option value="R">Romantic (R)</option>
+                            <option value="F">Friendly (F)</option>
+                            <option value="C">Collector (C)</option>
+                            <option value="E">Escape-Seeker (E)</option>
+                            <option value="G">Gift-Giver (G)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-1">Lifecycle</label>
+                        <select id="lifecycleFilter" multiple class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm text-gray-100" onchange="loadFans()">
+                            <option value="N">New (N)</option>
+                            <option value="W">Warming Up (W)</option>
+                            <option value="P">Peak (P)</option>
+                            <option value="CO">Cooling Off (CO)</option>
+                            <option value="CH">Churned (CH)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-1">LTV Tier</label>
+                        <select id="ltvFilter" multiple class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm text-gray-100" onchange="loadFans()">
+                            <option value="W">🐋 Whale ($5000+)</option>
+                            <option value="D">🐬 Dolphin ($1000-4999)</option>
+                            <option value="S">🦈 Shark ($500-999)</option>
+                            <option value="F">🐟 Fish ($100-499)</option>
+                            <option value="M">🐠 Minnow (&lt;$100)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="fansGrid">
+            <!-- Fan cards will be dynamically inserted here -->
+        </div>
+
+        <!-- Fan Detail Modal -->
+        <div id="fanModal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-50">
+            <div class="bg-gray-800 m-auto mt-20 p-8 border border-gray-700 rounded-2xl w-11/12 max-w-4xl max-h-[80vh] overflow-y-auto">
+                <span class="text-gray-400 float-right text-3xl font-bold cursor-pointer hover:text-gray-100" 
+                      onclick="closeFanModal()">&times;</span>
+                <div id="fanDetail">
+                    <!-- Fan details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fan Card Template -->
+    <template id="fanCardTemplate">
+        <div class="bg-gray-800 rounded-2xl p-6 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl hover:border-primary border border-gray-700" 
+             onclick="loadFanDetails('{fan_id}')">
+            <div class="mb-5">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xl font-semibold text-primary">{fan_id}</h3>
+                    <span class="px-3 py-1 rounded-full text-sm font-bold {value_color}">${total_spent}</span>
+                </div>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-sm text-gray-400">Model:</span>
+                    <span class="text-sm font-medium text-gray-300">{model_display}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1">
+                        <span class="text-xs font-mono bg-gray-700 px-2 py-1 rounded {segment_color}">{segment_code}</span>
+                        {ltv_badge}
+                        {provisional_badge}
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Feature 1: Fan Value Indicator -->
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
+                    <h4 class="text-sm text-gray-400 mb-2 font-medium">💰 Fan Value</h4>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xl font-bold text-green-400">${total_spent}</span>
+                        <span class="text-xs text-gray-500">{days_since} days ago</span>
+                    </div>
+                </div>
+
+                <!-- Feature 2: Recent Activity -->
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
+                    <h4 class="text-sm text-gray-400 mb-2 font-medium">📊 Recent Activity</h4>
+                    <div>
+                        <p class="text-gray-300 text-sm truncate mb-2">{last_message}</p>
+                        <div class="flex gap-2">
+                            <span class="px-2 py-1 bg-gray-800 rounded-full text-xs text-gray-400">{response_pattern}</span>
+                            <span class="px-2 py-1 bg-gray-800 rounded-full text-xs text-gray-400">{streak} day streak</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 3: What Works -->
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
+                    <h4 class="text-sm text-gray-400 mb-2 font-medium">✨ What Works</h4>
+                    <div class="text-sm space-y-1">
+                        <p class="text-gray-500">Best: {best_time}</p>
+                        <p class="text-gray-500">Style: {message_style}</p>
+                        <p class="text-gray-500">Topics: {topics}</p>
+                    </div>
+                </div>
+
+                <!-- Feature 4: Quick Action -->
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
+                    <h4 class="text-sm text-gray-400 mb-2 font-medium">🎯 Quick Action</h4>
+                    <div class="text-sm font-medium text-primary">
+                        {action_suggestion}
+                    </div>
+                </div>
+
+                <!-- Feature 5: Mood Tracker -->
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
+                    <h4 class="text-sm text-gray-400 mb-2 font-medium">😊 Current Mood</h4>
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">{mood_emoji}</span>
+                        <span class="text-sm text-gray-400">{mood_text}</span>
+                    </div>
+                </div>
+
+                <!-- Feature 6: Purchase Readiness -->
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
+                    <h4 class="text-sm text-gray-400 mb-2 font-medium">💳 Purchase Ready</h4>
+                    <div class="flex items-center gap-3">
+                        <div class="w-14 h-14 rounded-full flex items-center justify-center font-bold {readiness_color}">
+                            {readiness_score}/10
+                        </div>
+                        <span class="text-sm text-gray-400">{readiness_text}</span>
+                    </div>
+                </div>
+
+                <!-- Feature 7: Personal Notes -->
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
+                    <h4 class="text-sm text-gray-400 mb-2 font-medium">📝 Personal Notes</h4>
+                    <textarea class="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-gray-300 text-sm resize-none focus:outline-none focus:border-primary" 
+                              placeholder="Add notes..." rows="3"
+                              id="notes-{fan_id}" onblur="saveNotes('{fan_id}')">{notes}</textarea>
+                </div>
+
+                <!-- Feature 8: Recent Topics -->
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-700">
+                    <h4 class="text-sm text-gray-400 mb-2 font-medium">💬 Recent Topics</h4>
+                    <div class="flex flex-wrap gap-2">
+                        {recent_topics_html}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
