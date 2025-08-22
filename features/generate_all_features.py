@@ -19,7 +19,6 @@ from database_schema import DatabaseSchema
 from fan_level_features import FanLevelFeatures
 from message_level_features import MessageLevelFeatures
 from session_level_features import SessionLevelFeatures
-from scripts_analysis_features import ScriptsAnalysisFeatures
 
 
 class FeatureOrchestrator:
@@ -27,8 +26,8 @@ class FeatureOrchestrator:
     
     def __init__(self, data_path: str = None, db_path: str = None, 
                  reset_db: bool = False):
-        # Set default paths
-        self.data_path = data_path or "../data/raw/all_chatlogs.pkl"
+        # Set default paths - using message_level file for all features
+        self.data_path = data_path or "../data/raw/all_chatlogs_message_level.pkl"
         self.db_path = db_path or "../data/processed/features.db"
         self.reset_db = reset_db
         
@@ -48,7 +47,7 @@ class FeatureOrchestrator:
         if not self.data_path.exists():
             print(f"❌ Data file not found: {self.data_path}")
             print("\nPlease ensure your data file is in one of these locations:")
-            print("  1. ../data/raw/all_chatlogs.pkl (default)")
+            print("  1. ../data/raw/all_chatlogs_message_level.pkl (default)")
             print("  2. Specify custom path with --data argument")
             return False
         
@@ -88,7 +87,7 @@ class FeatureOrchestrator:
                 data_path=str(self.data_path),
                 db_path=str(self.db_path)
             )
-            generator.generate_all_features()
+            generator.generate_features()
             
             self.feature_times['fan_level'] = (datetime.now() - start).total_seconds()
             return True
@@ -111,7 +110,7 @@ class FeatureOrchestrator:
                 data_path=str(self.data_path),
                 db_path=str(self.db_path)
             )
-            generator.generate_all_features()
+            generator.generate_features()
             
             self.feature_times['message_level'] = (datetime.now() - start).total_seconds()
             return True
@@ -134,7 +133,7 @@ class FeatureOrchestrator:
                 data_path=str(self.data_path),
                 db_path=str(self.db_path)
             )
-            generator.generate_all_features()
+            generator.generate_features()
             
             self.feature_times['session_level'] = (datetime.now() - start).total_seconds()
             return True
@@ -221,7 +220,7 @@ class FeatureOrchestrator:
         self.setup_database()
         
         # Determine which features to generate
-        all_features = ['fan', 'message', 'session', 'scripts']
+        all_features = ['fan', 'message', 'session']
         
         if features_to_run is None or 'all' in features_to_run:
             features_to_run = all_features
@@ -265,7 +264,7 @@ Examples:
     parser.add_argument(
         '--data', '-d',
         help='Path to the input data file (pickle format)',
-        default='../data/raw/all_chatlogs.pkl'
+        default='../data/raw/all_chatlogs_message_level.pkl'
     )
     
     parser.add_argument(

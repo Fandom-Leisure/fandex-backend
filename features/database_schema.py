@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
 """
-DATABASE SCHEMA DEFINITIONS FOR FANDOM ANALYTICS
-=================================================
-SQLite table definitions that match the exact outputs from analysis scripts.
-All tables preserve the original data structure and column names.
+DATABASE SCHEMA DEFINITIONS FOR FANDOM ANALYTICS - PRODUCTION VERSION
+=====================================================================
+SQLite table definitions that match the exact outputs from feature generation scripts.
+
+PRODUCTION TABLES (3 tables only):
+1. enhanced_fan_analysis - 42 columns of fan-level features
+2. emoji_analysis - Message-level emoji and engagement metrics
+3. session_level_metrics - 35 columns of session-level features
+
+All script analysis tables have been removed for production.
+This schema exactly matches the outputs from:
+- fan_level_features.py
+- message_level_features.py
+- session_level_features.py
 """
 
 import sqlite3
@@ -46,7 +56,6 @@ class DatabaseSchema:
         self._create_fan_level_tables()
         self._create_message_level_tables()
         self._create_session_level_tables()
-        self._create_scripts_tables()
         self._create_metadata_table()
         
         self.conn.commit()
@@ -56,447 +65,128 @@ class DatabaseSchema:
     def _create_fan_level_tables(self):
         """Create fan level analysis tables - PRODUCTION VERSION."""
         
-        # PRODUCTION TABLE: Enhanced fan analysis (comprehensive metrics)
-        # This is the ONLY fan-level table used in production
+        # PRODUCTION TABLE: Enhanced fan analysis with exact 42 columns from fan_level_features.py
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS enhanced_fan_analysis (
                 fan_id TEXT PRIMARY KEY,
+                tier TEXT,
+                total_spending REAL,
                 total_revenue REAL,
                 total_tips REAL,
-                total_spending REAL,
-                tier TEXT,
-                first_interaction TIMESTAMP,
-                last_interaction TIMESTAMP,
+                lifetime_spend REAL,
+                activity_status TEXT,
+                days_since_last_interaction INTEGER,
+                days_since_last_purchase INTEGER,
+                purchases_last_7_days INTEGER,
+                purchases_last_30_days INTEGER,
+                avg_purchase_amount_lifetime REAL,
+                avg_purchase_amount_recent REAL,
+                highest_single_purchase REAL,
+                total_purchase_count INTEGER,
+                spend_trend TEXT,
+                messages_last_24_hours INTEGER,
+                messages_last_7_days INTEGER,
+                messages_last_30_days INTEGER,
+                avg_messages_per_active_day REAL,
+                days_since_last_message INTEGER,
+                current_streak_days INTEGER,
+                max_streak_days INTEGER,
+                unique_active_days INTEGER,
+                messaging_engagement TEXT,
                 total_interactions INTEGER,
                 fan_messages_sent INTEGER,
                 chatter_messages_received INTEGER,
+                first_interaction TIMESTAMP,
+                last_interaction TIMESTAMP,
+                last_purchase_date TIMESTAMP,
+                last_message_date TIMESTAMP,
                 days_active INTEGER,
                 avg_daily_value REAL,
                 messages_per_day REAL,
-                days_since_last_interaction INTEGER,
-                activity_status TEXT,
-                churn_risk TEXT,
                 peak_hour INTEGER,
                 most_active_day TEXT,
-                weekend_activity_pct REAL,
-                night_owl_score REAL,
-                avg_response_time_minutes REAL,
-                conversation_starter_pct REAL,
-                emoji_usage_rate REAL,
-                avg_message_length REAL,
-                questions_asked INTEGER,
-                exclamations_used INTEGER,
-                media_sent_count INTEGER,
-                lifetime_value_score REAL,
-                engagement_score REAL,
-                combined_score REAL,
-                priority_segment TEXT,
-                outreach_recommendation TEXT,
-                estimated_next_purchase_days INTEGER,
-                revenue_potential TEXT
+                primary_period TEXT,
+                weekday_pct REAL,
+                weekend_pct REAL,
+                engagement_trend TEXT,
+                segments_str TEXT
             )
         ''')
         
-        # The following tables are commented out for production
-        # They were used in development but are now consolidated into enhanced_fan_analysis
-        
-        # # Main fan analysis summary table - NOT USED IN PRODUCTION
-        # self.cursor.execute('''
-        #     CREATE TABLE IF NOT EXISTS fan_analysis_summary (
-        #         fan_id TEXT PRIMARY KEY,
-        #         total_revenue REAL,
-        #         total_tips REAL,
-        #         total_spending REAL,
-        #         tier TEXT,
-        #         first_interaction TIMESTAMP,
-        #         last_interaction TIMESTAMP,
-        #         total_interactions INTEGER,
-        #         fan_messages_sent INTEGER,
-        #         chatter_messages_received INTEGER,
-        #         days_active INTEGER,
-        #         avg_daily_value REAL,
-        #         messages_per_day REAL
-        #     )
-        # ''')
-        
-        # # Detailed fan analysis table - NOT USED IN PRODUCTION
-        # self.cursor.execute('''
-        #     CREATE TABLE IF NOT EXISTS fan_analysis_detailed (
-        #         fan_id TEXT PRIMARY KEY,
-        #         total_spending REAL,
-        #         tier TEXT,
-        #         total_interactions INTEGER,
-        #         days_active INTEGER,
-        #         avg_daily_value REAL,
-        #         messages_per_day REAL,
-        #         peak_hour INTEGER,
-        #         most_active_day TEXT,
-        #         weekend_activity_pct REAL,
-        #         night_owl_score REAL,
-        #         avg_response_time_minutes REAL,
-        #         conversation_starter_pct REAL,
-        #         emoji_usage_rate REAL,
-        #         avg_message_length REAL,
-        #         questions_asked INTEGER,
-        #         exclamations_used INTEGER,
-        #         media_sent_count INTEGER
-        #     )
-        # ''')
-        
-        # # Fan segments table - NOT USED IN PRODUCTION (segments are in enhanced_fan_analysis)
-        # self.cursor.execute('''
-        #     CREATE TABLE IF NOT EXISTS fan_segments (
-        #         fan_id TEXT,
-        #         segment_type TEXT,
-        #         total_spending REAL,
-        #         tier TEXT,
-        #         days_since_last_interaction INTEGER,
-        #         activity_status TEXT,
-        #         churn_risk TEXT,
-        #         lifetime_value_score REAL,
-        #         engagement_score REAL,
-        #         combined_score REAL,
-        #         priority_segment TEXT,
-        #         outreach_recommendation TEXT,
-        #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        #         PRIMARY KEY (fan_id, segment_type)
-        #     )
-        # ''')
-        
-        logger.info("Created fan level table: enhanced_fan_analysis")
+        logger.info("Created fan level table: enhanced_fan_analysis (42 columns)")
     
     def _create_message_level_tables(self):
         """Create message level analysis tables."""
         
-        # Emoji analysis table (per message)
+        # PRODUCTION TABLE: Emoji analysis with exact columns from message_level_features.py
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS emoji_analysis (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 fan_id TEXT,
-                model_name TEXT,
                 chatter_name TEXT,
-                datetime TIMESTAMP,
-                fan_message TEXT,
-                chatter_message TEXT,
-                fan_emojis TEXT,
-                chatter_emojis TEXT,
-                fan_emoji_count INTEGER,
-                chatter_emoji_count INTEGER,
-                fan_emoji_str TEXT,
-                chatter_emoji_str TEXT,
-                fan_has_emoji BOOLEAN,
-                chatter_has_emoji BOOLEAN
-            )
-        ''')
-        
-        # Emoji analysis summary
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS emoji_analysis_summary (
-                metric TEXT PRIMARY KEY,
-                value TEXT
-            )
-        ''')
-        
-        # Message level with media analysis
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS message_level_with_media (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                fan_id TEXT,
                 model_name TEXT,
-                chatter_name TEXT,
                 datetime TIMESTAMP,
-                fan_message TEXT,
-                chatter_message TEXT,
+                message TEXT,
+                sender_type TEXT,
+                sender_id TEXT,
+                emoji_count INTEGER,
+                unique_emoji_count INTEGER,
+                emoji_diversity REAL,
                 revenue REAL,
                 tips REAL,
-                fan_has_emoji BOOLEAN,
-                chatter_has_emoji BOOLEAN,
-                fan_emoji_count INTEGER,
-                chatter_emoji_count INTEGER,
-                has_media_trigger BOOLEAN,
-                media_trigger_type TEXT,
-                responded_with_purchase BOOLEAN,
-                time_to_purchase_minutes REAL,
-                purchase_amount REAL
+                purchased BOOLEAN,
+                total_value REAL
             )
         ''')
         
-        # Media analysis summary
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS media_analysis_summary (
-                metric TEXT PRIMARY KEY,
-                value TEXT
-            )
-        ''')
-        
-        # Media by chatter
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS media_by_chatter (
-                chatter_name TEXT PRIMARY KEY,
-                total_triggers INTEGER,
-                conversions INTEGER,
-                conversion_rate REAL,
-                avg_purchase_amount REAL,
-                total_revenue REAL,
-                avg_time_to_purchase REAL
-            )
-        ''')
-        
-        # Media by model
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS media_by_model (
-                model_name TEXT PRIMARY KEY,
-                total_triggers INTEGER,
-                conversions INTEGER,
-                conversion_rate REAL,
-                avg_purchase_amount REAL,
-                total_revenue REAL,
-                avg_time_to_purchase REAL
-            )
-        ''')
-        
-        # Media hourly distribution
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS media_hourly_distribution (
-                hour INTEGER PRIMARY KEY,
-                trigger_count INTEGER,
-                conversion_count INTEGER,
-                conversion_rate REAL
-            )
-        ''')
-        
-        # Fan media behavior
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS fan_media_behavior (
-                fan_id TEXT PRIMARY KEY,
-                total_triggers_received INTEGER,
-                total_conversions INTEGER,
-                conversion_rate REAL,
-                avg_purchase_amount REAL,
-                total_spent_on_media REAL,
-                avg_response_time REAL,
-                preferred_media_type TEXT
-            )
-        ''')
-        
-        # Media triggers analysis tables
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS fan_media_triggers (
-                fan_id TEXT PRIMARY KEY,
-                triggers_received INTEGER,
-                purchases_made INTEGER,
-                conversion_rate REAL,
-                total_spent REAL,
-                avg_purchase REAL,
-                avg_response_time_min REAL
-            )
-        ''')
-        
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS chatter_media_triggers (
-                chatter_name TEXT PRIMARY KEY,
-                triggers_sent INTEGER,
-                conversions INTEGER,
-                conversion_rate REAL,
-                revenue_generated REAL,
-                avg_purchase REAL
-            )
-        ''')
-        
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS all_media_triggers_analysis (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                analysis_type TEXT,
-                category TEXT,
-                value REAL,
-                count INTEGER,
-                percentage REAL
-            )
-        ''')
-        
-        logger.info("Created message level tables")
+        logger.info("Created message level table: emoji_analysis")
     
     def _create_session_level_tables(self):
         """Create session level analysis tables."""
         
-        # Session level metrics
+        # PRODUCTION TABLE: Session level metrics with exact 35 columns from session_level_features.py
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS session_level_metrics (
                 unique_session_id TEXT PRIMARY KEY,
                 fan_id TEXT,
-                model_name TEXT,
                 chatter_name TEXT,
+                model_name TEXT,
                 session_start TIMESTAMP,
                 session_end TIMESTAMP,
-                message_count INTEGER,
+                total_messages INTEGER,
                 fan_messages INTEGER,
                 chatter_messages INTEGER,
+                session_revenue REAL,
+                session_tips REAL,
+                made_purchase BOOLEAN,
+                session_duration_minutes REAL,
+                fan_to_chatter_ratio REAL,
+                session_value REAL,
+                session_length_category TEXT,
+                avg_response_time REAL,
+                median_response_time REAL,
+                min_response_time REAL,
+                max_response_time REAL,
+                response_count INTEGER,
                 avg_fan_msg_length REAL,
+                total_fan_msg_length REAL,
                 max_fan_msg_length REAL,
                 avg_chatter_msg_length REAL,
+                total_chatter_msg_length REAL,
                 max_chatter_msg_length REAL,
-                total_revenue REAL,
-                revenue_only REAL,
-                tips_only REAL,
-                generated_revenue BOOLEAN,
-                duration_minutes REAL,
-                messages_per_minute REAL,
-                response_rate REAL,
-                avg_response_time_minutes REAL
+                total_fan_emojis INTEGER,
+                avg_fan_emojis REAL,
+                total_chatter_emojis INTEGER,
+                avg_chatter_emojis REAL,
+                fan_media_count INTEGER,
+                chatter_media_count INTEGER,
+                engagement_intensity REAL,
+                engagement_category TEXT
             )
         ''')
         
-        # Fan level session metrics (aggregated)
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS fan_level_session_metrics (
-                fan_id TEXT PRIMARY KEY,
-                total_sessions INTEGER,
-                total_messages INTEGER,
-                total_revenue REAL,
-                avg_session_duration REAL,
-                avg_messages_per_session REAL,
-                avg_revenue_per_session REAL,
-                conversion_rate REAL,
-                total_fan_messages INTEGER,
-                total_chatter_messages INTEGER,
-                avg_response_time REAL,
-                preferred_hour INTEGER,
-                preferred_day TEXT
-            )
-        ''')
-        
-        # Session analysis summary
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS session_analysis_summary (
-                metric TEXT PRIMARY KEY,
-                value TEXT
-            )
-        ''')
-        
-        # Session analysis complete (JSON storage)
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS session_analysis_complete (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                analysis_type TEXT,
-                data TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Hourly session patterns
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS hourly_session_patterns (
-                hour INTEGER PRIMARY KEY,
-                session_count INTEGER,
-                avg_duration REAL,
-                avg_messages REAL,
-                avg_revenue REAL,
-                conversion_rate REAL
-            )
-        ''')
-        
-        # Session by model
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS session_by_model (
-                model_name TEXT PRIMARY KEY,
-                total_sessions INTEGER,
-                total_revenue REAL,
-                avg_session_duration REAL,
-                avg_messages_per_session REAL,
-                avg_revenue_per_session REAL,
-                conversion_rate REAL
-            )
-        ''')
-        
-        # Session category distribution
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS session_category_distribution (
-                category TEXT PRIMARY KEY,
-                session_count INTEGER,
-                percentage REAL,
-                avg_duration REAL,
-                avg_revenue REAL
-            )
-        ''')
-        
-        logger.info("Created session level tables")
+        logger.info("Created session level table: session_level_metrics (35 columns)")
     
-    def _create_scripts_tables(self):
-        """Create scripts analysis tables."""
-        
-        # Script statistics
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS script_statistics (
-                unique_script_id TEXT PRIMARY KEY,
-                fan_id TEXT,
-                chatter_name TEXT,
-                model_name TEXT,
-                script_start TIMESTAMP,
-                script_end TIMESTAMP,
-                total_messages INTEGER,
-                total_revenue REAL,
-                revenue_only REAL,
-                tips_only REAL,
-                generated_revenue BOOLEAN,
-                fan_messages INTEGER,
-                chatter_messages INTEGER,
-                duration_minutes REAL,
-                messages_per_minute REAL,
-                revenue_per_message REAL,
-                revenue_efficiency REAL
-            )
-        ''')
-        
-        # Model summary
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS model_summary (
-                model_name TEXT PRIMARY KEY,
-                total_scripts INTEGER,
-                revenue_generating_scripts INTEGER,
-                total_revenue REAL,
-                avg_revenue_per_script REAL,
-                conversion_rate REAL,
-                avg_messages_per_script REAL,
-                avg_duration_minutes REAL
-            )
-        ''')
-        
-        # Top scripts per model (JSON storage)
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS model_top_scripts (
-                model_name TEXT,
-                script_rank INTEGER,
-                script_id TEXT,
-                revenue REAL,
-                messages TEXT,
-                fan_messages TEXT,
-                chatter_messages TEXT,
-                duration_minutes REAL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (model_name, script_rank)
-            )
-        ''')
-        
-        # All models top 5 scripts (JSON storage)
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS all_models_top_scripts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                data TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Analysis summary (JSON storage)
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS scripts_analysis_summary (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                summary_type TEXT,
-                data TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        logger.info("Created scripts analysis tables")
     
     def _create_metadata_table(self):
         """Create metadata table for tracking analysis runs."""
@@ -516,13 +206,13 @@ class DatabaseSchema:
         ''')
         
         # Create indexes for better query performance
-        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_fan_id ON fan_analysis_summary(fan_id)')
-        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_fan_tier ON fan_analysis_summary(tier)')
+        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_enhanced_fan_id ON enhanced_fan_analysis(fan_id)')
+        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_enhanced_fan_tier ON enhanced_fan_analysis(tier)')
+        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_enhanced_fan_activity ON enhanced_fan_analysis(activity_status)')
         self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_fan ON session_level_metrics(fan_id)')
         self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_model ON session_level_metrics(model_name)')
-        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_script_model ON script_statistics(model_name)')
-        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_message_fan ON message_level_with_media(fan_id)')
-        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_message_datetime ON message_level_with_media(datetime)')
+        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_emoji_fan ON emoji_analysis(fan_id)')
+        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_emoji_datetime ON emoji_analysis(datetime)')
         
         logger.info("Created metadata table and indexes")
     
